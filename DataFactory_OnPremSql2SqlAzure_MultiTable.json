@@ -1,0 +1,341 @@
+﻿{
+  "contentVersion": "1.0.0.0",
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "parameters": {
+    "dataFactoryName": {
+      "type": "string",
+      "metadata": {
+        "description": "Data Factory Account name"
+      }
+    },
+    "azureSqlServerName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL Database Server name"
+      }
+    },
+    "azureSqlServerUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL Database Server user name"
+      }
+    },
+    "azureSqlServerPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure SQL Database Server password"
+      }
+    },
+    "azureTargetDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL Database name"
+      }
+    },
+    "azureSqlTableName1": {
+      "type": "string",
+      "metadata": {
+        "description": "table in Azure SQL Database"
+      }
+    },
+    "azureSqlTableName2": {
+      "type": "string",
+      "metadata": {
+        "description": "table in Azure SQL Database"
+      }
+    },
+    "OnPremSqlServerName": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem SQL Database Server name"
+      }
+    },
+    "OnPremSqlServerUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem SQL Database Server user name"
+      }
+    },
+    "OnPremSqlServerPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "OnPrem SQL Database Server password"
+      }
+    },
+    "OnPremSourceDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem SQL Database name"
+      }
+    },
+    "OnPremSqlTableName1": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem SQL Database Table"
+      }
+    },
+    "OnPremSqlTableName2": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem SQL Database Table"
+      }
+    },
+    "OnPremGateway": {
+      "type": "string",
+      "metadata": {
+        "description": "OnPrem Gateway"
+      }
+    },
+    "StartTime": {
+      "type": "string",
+      "metadata": {
+        "description": "Start Time"
+      }
+    },
+    "StopTime": {
+      "type": "string",
+      "metadata": {
+        "description": "Stop Time"
+      }
+    },
+    "location": {
+      "type": "string",
+      "allowedValues": [
+        "West US",
+        "North Europe"
+      ],
+      "metadata": {
+        "description": "Location where resources will be provisioned"
+      }
+    }
+  },
+  "variables": {
+    "apiVersion": "2014-10-01-preview",
+    "azureSqlLinkedServiceName": "AzureSqlLinkedService",
+    "OnPremSqlServerLinkedServiceName": "OnPremSqlServerLinkedService",
+    "OnPremSqlTableName1": "SqlServerTable1",
+    "OnPremSqlTableName2": "SqlServerTable2",
+    "azureSqlTableName1": "azureSqlTable1",
+    "azureSqlTableName2": "azureSqlTable2",
+    "PipelineName1": "Tbl12Tbl1",
+    "PipelineName2": "Tbl22Tbl2"
+  },
+  "resources": [
+    {
+      "name": "[parameters('dataFactoryName')]",
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.DataFactory/datafactories",
+      "location": "[parameters('location')]",
+      "resources": [
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]"
+          ],
+          "type": "linkedservices",
+          "name": "[variables('azureSqlLinkedServiceName')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "type": "AzureSqlLinkedService",
+            "connectionString": "Server=tcp:,parameters('azureSqlServerName').database.windows.net,1433;Database=, parameters('azureTargetDatabaseName'),;User ID=,parameters('azureSqlServerUserName'),;Password=,parameters('azureSqlServerPassword'),;Trusted_Connection=True;Encrypt=True;Connection Timeout=30"
+          }
+        },
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]"
+          ],
+          "type": "linkedservices",
+          "name": "[variables('OnPremSqlServerLinkedServiceName')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "type": "OnPremisesSqlLinkedService",
+            "connectionString": "Data Source=,parameters('OnPremSqlServerName');Initial Catalog=,parameters('OnPremSourceDatabaseName');Integrated Security=True;User ID=,parameters('OnPremSqlServerUserName');Password=,parameters('OnPremSqlServerPassword');",
+            "gatewayLocation": "westus",
+            "gatewayName": "[concat(parameters('OnPremGateway'))]"
+          }
+        },
+        {
+          "apiVersion": "[variables('apiVersion')]",
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]"
+          ],
+          "type": "tables",
+          "name": "[variables('OnPremSqlTableName1')]",
+          "properties": {
+            "location": {
+              "type": "OnPremisesSqlServerTableLocation",
+              "tableName": "[parameters('OnPremSqlTableName1')]",
+              "linkedServiceName": "[variables('OnPremSqlServerLinkedServiceName')]"
+            },
+            "availability": {
+              "frequency": "Day",
+              "interval": 1
+            }
+          }
+
+        },
+        {
+          "apiVersion": "[variables('apiVersion')]",
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]"
+          ],
+          "type": "tables",
+          "name": "[variables('OnPremSqlTableName2')]",
+          "properties": {
+            "location": {
+              "type": "OnPremisesSqlServerTableLocation",
+              "tableName": "[parameters('OnPremSqlTableName2')]",
+              "linkedServiceName": "[variables('OnPremSqlServerLinkedServiceName')]"
+            },
+            "availability": {
+              "frequency": "Day",
+              "interval": 1
+            }
+          }
+
+        },
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]"
+          ],
+          "type": "tables",
+          "name": "[variables('azureSqlTableName1')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "location": {
+              "type": "AzureSqlTableLocation",
+              "tableName": "[parameters('azureSqlTableName1')]",
+              "linkedServiceName": "[variables('azureSqlLinkedServiceName')]"
+            },
+            "availability": {
+              "frequency": "Day",
+              "interval": 1
+            }
+          }
+        },
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]"
+          ],
+          "type": "tables",
+          "name": "[variables('azureSqlTableName2')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "location": {
+              "type": "AzureSqlTableLocation",
+              "tableName": "[parameters('azureSqlTableName2')]",
+              "linkedServiceName": "[variables('azureSqlLinkedServiceName')]"
+            },
+            "availability": {
+              "frequency": "Day",
+              "interval": 1
+            }
+          }
+        },
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/tables/', variables('azureSqlTableName1'))]"
+          ],
+          "type": "datapipelines",
+          "name": "[variables('PipelineName1')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "description": "Fetch Table 1 data on prem and push to Azure SQL Database",
+            "activities": [
+              {
+                "name": "EgressDataAzureTbl1",
+                "description": "Push data from SQL to Sql Azure",
+                "type": "CopyActivity",
+                "inputs": [
+                  {
+                    "name": "[variables('OnPremSqlTableName1')]"
+                  }
+                ],
+                "outputs": [
+                  {
+                    "name": "[variables('azureSqlTableName1')]"
+                  }
+                ],
+                "transformation": {
+                  "source": {
+                    "type": "SQLSource"
+                  },
+                  "sink": {
+                    "/type": "SqlSink"
+                  }
+                },
+                "Policy": {
+                  "concurrency": 1,
+                  "executionPriorityOrder": "NewestFirst",
+                  "style": "StartOfInterval",
+                  "retry": 2,
+                  "timeout": "01:00:00"
+                }
+              }
+            ],
+            "start": "[parameters('StartTime')]",
+            "end": "[parameters('StopTime')]"
+          }
+        },
+        {
+          "dependsOn": [
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('OnPremSqlServerLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/linkedServices/', variables('azureSqlLinkedServiceName'))]",
+            "[concat('Microsoft.DataFactory/dataFactories/', parameters('dataFactoryName'), '/tables/', variables('azureSqlTableName2'))]"
+          ],
+          "type": "datapipelines",
+          "name": "[variables('PipelineName2')]",
+          "apiVersion": "[variables('apiVersion')]",
+          "properties": {
+            "description": "Fetch Table 2 data on prem and push to Azure SQL Database",
+            "activities": [
+              {
+                "name": "EgressDataAzureTbl2",
+                "description": "Push data from SQL to Sql Azure",
+                "type": "CopyActivity",
+                "inputs": [
+                  {
+                    "name": "[variables('OnPremSqlTableName2')]"
+                  }
+                ],
+                "outputs": [
+                  {
+                    "name": "[variables('azureSqlTableName2')]"
+                  }
+                ],
+                "transformation": {
+                  "source": {
+                    "type": "SQLSource"
+                  },
+                  "sink": {
+                    "/type": "SqlSink"
+                  }
+                },
+                "Policy": {
+                  "concurrency": 1,
+                  "executionPriorityOrder": "NewestFirst",
+                  "style": "StartOfInterval",
+                  "retry": 2,
+                  "timeout": "01:00:00"
+                }
+              }
+            ],
+            "start": "[parameters('StartTime')]",
+            "end": "[parameters('StopTime')]"
+          }
+        }
+      ]
+    }
+  ]
+}
